@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07131d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Repeat Timer">
+  <meta name="description" content="A simple repeat sound interval timer.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2307131d'/%3E%3Ccircle cx='32' cy='32' r='19' fill='none' stroke='%235fe1c1' stroke-width='5'/%3E%3Cpath d='M32 20v12l8 7' fill='none' stroke='%23f8b45b' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <title>Repeat Timer</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #eef8f6;
+      --muted: #89a4aa;
+      --quiet: #5d7880;
+      --bg: #07131d;
+      --panel: rgba(17, 34, 43, .82);
+      --panel-strong: #122630;
+      --line: rgba(170, 221, 220, .12);
+      --mint: #5fe1c1;
+      --mint-bright: #9af5dc;
+      --amber: #f8b45b;
+      --red: #ff777f;
+      --shadow: 0 24px 65px rgba(0, 0, 0, .28);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-width: 320px; background: var(--bg); }
+
+    body {
+      min-height: 100svh;
+      margin: 0;
+      overflow-x: hidden;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 50% -8%, rgba(71, 155, 151, .20), transparent 33rem),
+        linear-gradient(180deg, #091923 0%, var(--bg) 58%, #061019 100%);
+    }
+
+    button, input { font: inherit; }
+
+    button { -webkit-tap-highlight-color: transparent; }
+
+    .app {
+      width: min(100%, 480px);
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: max(22px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 52px;
+    }
+
+    .brand-mark {
+      position: relative;
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      flex: 0 0 auto;
+      border: 1px solid rgba(95, 225, 193, .35);
+      border-radius: 14px;
+      background: rgba(95, 225, 193, .08);
+      box-shadow: inset 0 0 20px rgba(95, 225, 193, .06);
+    }
+
+    .brand-mark::before,
+    .brand-mark::after {
+      position: absolute;
+      content: "";
+      border: 1.5px solid var(--mint);
+      border-radius: 999px;
+    }
+
+    .brand-mark::before { width: 22px; height: 22px; opacity: .45; }
+    .brand-mark::after { width: 11px; height: 11px; opacity: .95; }
+
+    .brand-copy { min-width: 0; }
+
+    .brand-name {
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 760;
+      letter-spacing: .01em;
+    }
+
+    .brand-sub {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .04em;
+    }
+
+    .state-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 30px;
+      margin-left: auto;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(12, 29, 37, .58);
+      font-size: 11px;
+      font-weight: 760;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .state-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--quiet);
+      box-shadow: 0 0 0 3px rgba(93, 120, 128, .12);
+    }
+
+    .state-pill.running {
+      border-color: rgba(95, 225, 193, .28);
+      color: var(--mint-bright);
+    }
+
+    .state-pill.running .state-dot {
+      background: var(--mint);
+      box-shadow: 0 0 0 3px rgba(95, 225, 193, .14), 0 0 15px rgba(95, 225, 193, .72);
+      animation: breathe 1.4s ease-in-out infinite;
+    }
+
+    main { padding-top: 22px; }
+
+    .eyebrow,
+    .section-label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 21px 18px 20px;
+      border: 1px solid rgba(170, 221, 220, .14);
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at 50% 40%, rgba(72, 154, 148, .12), transparent 14rem),
+        linear-gradient(145deg, rgba(19, 43, 52, .96), rgba(10, 28, 37, .94));
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, .04);
+    }
+
+    .hero::after {
+      position: absolute;
+      right: -50px;
+      bottom: -100px;
+      width: 220px;
+      height: 220px;
+      border: 1px solid rgba(95, 225, 193, .08);
+      border-radius: 50%;
+      content: "";
+      pointer-events: none;
+    }
+
+    .hero-top {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .mode-label {
+      color: var(--amber);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .sound-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .sound-indicator svg { color: var(--mint); }
+
+    .timer-stage {
+      position: relative;
+      display: grid;
+      width: min(72vw, 286px);
+      aspect-ratio: 1;
+      margin: 8px auto 2px;
+      place-items: center;
+    }
+
+    .timer-ring {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+      overflow: visible;
+    }
+
+    .ring-track,
+    .ring-progress {
+      fill: none;
+      stroke-width: 8;
+    }
+
+    .ring-track { stroke: rgba(144, 207, 203, .10); }
+
+    .ring-progress {
+      stroke: var(--mint);
+      stroke-linecap: round;
+      filter: drop-shadow(0 0 7px rgba(95, 225, 193, .30));
+      transition: stroke-dashoffset .08s linear;
+    }
+
+    .ring-core {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      width: 76%;
+      height: 76%;
+      place-items: center;
+      align-content: center;
+      border: 1px solid rgba(170, 221, 220, .12);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(22, 53, 61, .70), rgba(8, 25, 34, .82) 70%);
+      box-shadow: inset 0 0 28px rgba(95, 225, 193, .07), 0 0 0 12px rgba(95, 225, 193, .02);
+    }
+
+    .timer-caption { margin: 0 0 3px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .16em; }
+
+    .timer-value {
+      color: var(--ink);
+      font-size: clamp(58px, 16vw, 76px);
+      font-variant-numeric: tabular-nums;
+      font-weight: 730;
+      letter-spacing: -.07em;
+      line-height: .95;
+      text-shadow: 0 4px 28px rgba(95, 225, 193, .12);
+    }
+
+    .timer-unit { margin-top: 9px; color: var(--mint); font-size: 10px; font-weight: 800; letter-spacing: .18em; }
+
+    .hero-note {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    .hero-note strong { color: var(--ink); font-weight: 650; }
+
+    .controls {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--panel);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, .12), inset 0 1px 0 rgba(255, 255, 255, .025);
+    }
+
+    .interval-panel { padding: 16px; }
+
+    .interval-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 13px;
+    }
+
+    .interval-value-note { color: var(--quiet); font-size: 12px; }
+
+    .stepper {
+      display: grid;
+      grid-template-columns: 54px 1fr 54px;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .step-button {
+      display: grid;
+      width: 54px;
+      height: 54px;
+      place-items: center;
+      border: 1px solid rgba(170, 221, 220, .14);
+      border-radius: 16px;
+      color: var(--mint-bright);
+      background: rgba(95, 225, 193, .07);
+      cursor: pointer;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease;
+    }
+
+    .step-button:active { transform: scale(.95); }
+    .step-button:hover { border-color: rgba(95, 225, 193, .45); background: rgba(95, 225, 193, .12); }
+
+    .interval-input-wrap {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 8px;
+      min-width: 0;
+      height: 58px;
+      padding: 0 10px;
+      border: 1px solid rgba(95, 225, 193, .24);
+      border-radius: 17px;
+      background: rgba(7, 19, 29, .55);
+      box-shadow: inset 0 0 0 1px rgba(95, 225, 193, .03);
+    }
+
+    #intervalInput {
+      width: 112px;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      color: var(--ink);
+      background: transparent;
+      font-size: 27px;
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      letter-spacing: -.04em;
+      text-align: right;
+    }
+
+    #intervalInput::-webkit-inner-spin-button,
+    #intervalInput::-webkit-outer-spin-button { margin: 0; opacity: .5; }
+
+    .input-unit { color: var(--muted); font-size: 14px; font-weight: 650; }
+
+    .interval-help { margin: 11px 2px 0; color: var(--quiet); font-size: 12px; }
+
+    .actions { display: grid; grid-template-columns: 1.35fr 1fr; gap: 10px; }
+
+    .action-button {
+      display: inline-flex;
+      min-height: 58px;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      border: 1px solid transparent;
+      border-radius: 18px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 760;
+      letter-spacing: .01em;
+      transition: transform .15s ease, filter .15s ease, opacity .15s ease, border-color .15s ease;
+    }
+
+    .action-button:active { transform: scale(.98); }
+
+    .primary {
+      color: #06221f;
+      background: linear-gradient(135deg, var(--mint-bright), var(--mint));
+      box-shadow: 0 12px 25px rgba(67, 205, 174, .18), inset 0 1px 0 rgba(255, 255, 255, .45);
+    }
+
+    .primary:hover { filter: brightness(1.06); }
+
+    .secondary {
+      border-color: rgba(170, 221, 220, .15);
+      color: var(--muted);
+      background: rgba(18, 38, 48, .72);
+    }
+
+    .secondary:hover:not(:disabled) { border-color: rgba(255, 119, 127, .40); color: #ffabb0; }
+
+    .action-button:disabled { cursor: not-allowed; opacity: .42; }
+
+    .footer-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 15px;
+      padding: 0 3px;
+      color: var(--quiet);
+      font-size: 12px;
+    }
+
+    .footer-strip span { display: inline-flex; align-items: center; gap: 6px; }
+
+    .footer-strip svg { color: var(--amber); }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @keyframes breathe {
+      0%, 100% { opacity: .65; }
+      50% { opacity: 1; }
+    }
+
+    @media (min-width: 520px) {
+      .app { padding-right: 24px; padding-left: 24px; }
+      .hero { padding-right: 24px; padding-left: 24px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar" aria-label="Repeat Timer header">
+      <div class="brand-mark" aria-hidden="true"></div>
+      <div class="brand-copy">
+        <div class="brand-name">Repeat Timer</div>
+        <div class="brand-sub">Precision interval loop</div>
+      </div>
+      <div class="state-pill" id="statePill" aria-live="polite">
+        <span class="state-dot" aria-hidden="true"></span>
+        <span id="stateLabel">Ready</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="timerHeading">
+        <div class="hero-top">
+          <div>
+            <div class="eyebrow" id="timerHeading">Countdown</div>
+            <div class="mode-label">Sound loop</div>
+          </div>
+          <div class="sound-indicator" aria-label="Sound notification enabled">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 10v4h4l5 4V6l-5 4H4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="M17 9.5a4.5 4.5 0 0 1 0 5M19.5 7a8 8 0 0 1 0 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            Sound on
+          </div>
+        </div>
+
+        <div class="timer-stage" aria-live="off">
+          <svg class="timer-ring" viewBox="0 0 320 320" aria-hidden="true">
+            <circle class="ring-track" cx="160" cy="160" r="140"></circle>
+            <circle class="ring-progress" id="ringProgress" cx="160" cy="160" r="140"></circle>
+          </svg>
+          <div class="ring-core">
+            <p class="timer-caption" id="countdownCaption">Next sound in</p>
+            <div class="timer-value" id="countdown">3.5</div>
+            <div class="timer-unit">seconds</div>
+          </div>
+        </div>
+
+        <p class="hero-note" id="heroNote">Set your interval, then press <strong>Start loop</strong>.</p>
+      </section>
+
+      <section class="controls" aria-label="Timer controls">
+        <div class="panel interval-panel">
+          <div class="interval-head">
+            <div class="section-label">Interval</div>
+            <div class="interval-value-note">0.1 second steps</div>
+          </div>
+
+          <div class="stepper">
+            <button class="step-button" id="decreaseButton" type="button" aria-label="Decrease interval by 0.1 seconds">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+            <label class="interval-input-wrap">
+              <span class="sr-only">Interval in seconds</span>
+              <input id="intervalInput" type="number" inputmode="decimal" min="0.1" max="3600" step="0.1" value="3.5" aria-describedby="intervalHelp">
+              <span class="input-unit">sec</span>
+            </label>
+            <button class="step-button" id="increaseButton" type="button" aria-label="Increase interval by 0.1 seconds">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <p class="interval-help" id="intervalHelp">One sound notification repeats at this interval until stopped.</p>
+        </div>
+
+        <div class="actions">
+          <button class="action-button primary" id="startButton" type="button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m8 5 11 7-11 7V5Z" fill="currentColor"/></svg>
+            <span>Start loop</span>
+          </button>
+          <button class="action-button secondary" id="stopButton" type="button" disabled>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2"/></svg>
+            <span>Stop</span>
+          </button>
+        </div>
+      </section>
+
+      <div class="footer-strip">
+        <span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Keep the app open while running
+        </span>
+        <span>Cycles not tracked</span>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      const input = document.getElementById('intervalInput');
+      const decreaseButton = document.getElementById('decreaseButton');
+      const increaseButton = document.getElementById('increaseButton');
+      const startButton = document.getElementById('startButton');
+      const stopButton = document.getElementById('stopButton');
+      const countdown = document.getElementById('countdown');
+      const countdownCaption = document.getElementById('countdownCaption');
+      const heroNote = document.getElementById('heroNote');
+      const statePill = document.getElementById('statePill');
+      const stateLabel = document.getElementById('stateLabel');
+      const ringProgress = document.getElementById('ringProgress');
+
+      const ringRadius = 140;
+      const ringLength = 2 * Math.PI * ringRadius;
+      ringProgress.style.strokeDasharray = ringLength;
+
+      let intervalSeconds = 3.5;
+      let running = false;
+      let nextSoundAt = 0;
+      let animationFrame = 0;
+      let audioContext = null;
+
+      function clamp(value) {
+        return Math.min(3600, Math.max(0.1, value));
+      }
+
+      function cleanValue(value) {
+        return Math.round(clamp(value) * 10) / 10;
+      }
+
+      function readInput() {
+        const parsed = Number.parseFloat(input.value);
+        return Number.isFinite(parsed) ? cleanValue(parsed) : intervalSeconds;
+      }
+
+      function displaySeconds(value) {
+        return cleanValue(value).toFixed(1);
+      }
+
+      function setIntervalValue(value) {
+        intervalSeconds = cleanValue(value);
+        input.value = displaySeconds(intervalSeconds);
+        if (!running) updateCountdown(intervalSeconds, 1);
+      }
+
+      function updateCountdown(secondsRemaining, progress) {
+        countdown.textContent = displaySeconds(secondsRemaining);
+        const safeProgress = Math.min(1, Math.max(0, progress));
+        ringProgress.style.strokeDashoffset = ringLength * (1 - safeProgress);
+      }
+
+      function setReadyState() {
+        statePill.classList.remove('running');
+        stateLabel.textContent = 'Ready';
+        countdownCaption.textContent = 'Next sound in';
+        heroNote.innerHTML = 'Set your interval, then press <strong>Start loop</strong>.';
+        startButton.disabled = false;
+        stopButton.disabled = true;
+      }
+
+      function setRunningState() {
+        statePill.classList.add('running');
+        stateLabel.textContent = 'Running';
+        countdownCaption.textContent = 'Next sound in';
+        heroNote.innerHTML = 'The sound repeats every <strong>' + displaySeconds(intervalSeconds) + ' seconds</strong>.';
+        startButton.disabled = true;
+        stopButton.disabled = false;
+      }
+
+      function createAudioContext() {
+        if (!audioContext) {
+          const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextConstructor) audioContext = new AudioContextConstructor();
+        }
+        return audioContext;
+      }
+
+      function playSound() {
+        const context = createAudioContext();
+        if (!context) return;
+
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        const now = context.currentTime;
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(760, now);
+        oscillator.frequency.exponentialRampToValueAtTime(610, now + 0.11);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.18, now + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.14);
+
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(now);
+        oscillator.stop(now + 0.15);
+      }
+
+      function animate(now) {
+        if (!running) return;
+
+        const intervalMs = intervalSeconds * 1000;
+        if (now >= nextSoundAt) {
+          playSound();
+          do {
+            nextSoundAt += intervalMs;
+          } while (nextSoundAt <= now);
+        }
+
+        const remaining = Math.max(0, nextSoundAt - now);
+        updateCountdown(remaining / 1000, remaining / intervalMs);
+        animationFrame = requestAnimationFrame(animate);
+      }
+
+      async function startTimer() {
+        if (running) return;
+
+        setIntervalValue(readInput());
+        const context = createAudioContext();
+        if (context && context.state === 'suspended') await context.resume();
+
+        running = true;
+        nextSoundAt = performance.now() + intervalSeconds * 1000;
+        setRunningState();
+        animationFrame = requestAnimationFrame(animate);
+      }
+
+      function stopTimer() {
+        running = false;
+        cancelAnimationFrame(animationFrame);
+        setIntervalValue(readInput());
+        updateCountdown(intervalSeconds, 1);
+        setReadyState();
+      }
+
+      decreaseButton.addEventListener('click', () => setIntervalValue(intervalSeconds - 0.1));
+      increaseButton.addEventListener('click', () => setIntervalValue(intervalSeconds + 0.1));
+      input.addEventListener('change', () => setIntervalValue(readInput()));
+      input.addEventListener('blur', () => setIntervalValue(readInput()));
+      startButton.addEventListener('click', startTimer);
+      stopButton.addEventListener('click', stopTimer);
+
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') startTimer();
+      });
+
+      setIntervalValue(intervalSeconds);
+      setReadyState();
+    })();
+  </script>
+</body>
+</html>
